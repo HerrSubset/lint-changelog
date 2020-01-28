@@ -16,13 +16,9 @@ public class LinterTest {
      */
     @Test
     public void emptyFileIsValid() throws IOException {
-        File file = new File(getClass()
-                .getClassLoader()
-                .getResource("testfiles/01_empty_file.md")
-                .getFile()
-        );
-
-        List<ValidationMessage> validationFailures = new ChangelogLinter(file).validate();
+        File file = loadTestFile("testfiles/01_empty_file.md");
+        List<ValidationMessage> validationFailures = new ChangelogLinter(file)
+                .validate();
 
         assertTrue(validationFailures.isEmpty());
     }
@@ -34,13 +30,9 @@ public class LinterTest {
      */
     @Test
     public void doubleVersionEntriesAreReported() {
-        File file = new File(getClass()
-                .getClassLoader()
-                .getResource("testfiles/02_double_version.md")
-                .getFile()
-        );
-
-        List<ValidationMessage> validationFailures = new ChangelogLinter(file).validate();
+        File file = loadTestFile("testfiles/02_double_version.md");
+        List<ValidationMessage> validationFailures = new ChangelogLinter(file)
+                .validate();
 
         assertFalse(validationFailures.isEmpty());
         assertTrue(validationFailures.get(0).getMessage().contains("1.0.1"));
@@ -52,20 +44,26 @@ public class LinterTest {
      */
     @Test
     public void doubleVersionsGetLineNumbersInValidationMessage() {
-        File file = new File(getClass()
-                .getClassLoader()
-                .getResource("testfiles/03_triple_version.md")
-                .getFile()
-        );
-
-        List<ValidationMessage> validationFailures = new ChangelogLinter(file).validate();
+        File file = loadTestFile("testfiles/03_triple_version.md");
+        List<ValidationMessage> validationFailures = new ChangelogLinter(file)
+                .validate();
 
         assertFalse(validationFailures.isEmpty());
         assertTrue(validationFailures.get(0).getMessage().contains(" 10"));
         assertTrue(validationFailures.get(0).getMessage().contains(" 18"));
         assertTrue(validationFailures.get(0).getMessage().contains(" 36"));
-
     }
 
     // TODO: test path to file that doesn't exist (change API to take path instead of File)
+
+    /******************************************************
+     * Utilities
+     *****************************************************/
+    private File loadTestFile(String path) {
+        return new File(getClass()
+                .getClassLoader()
+                .getResource(path)
+                .getFile()
+        );
+    }
 }
