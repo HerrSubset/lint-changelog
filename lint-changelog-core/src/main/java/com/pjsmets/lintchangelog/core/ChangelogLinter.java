@@ -1,5 +1,7 @@
 package com.pjsmets.lintchangelog.core;
 
+import com.google.common.base.Joiner;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,25 +36,33 @@ public class ChangelogLinter {
 
     private List<ValidationMessage> generateDoubleVersionWarnings(List<String> fileLines) {
         // build a map of how many times a version occurs
-        Map<String, Integer> versionCounts = new HashMap<>();
+        Map<String, List<Integer>> versionCounts = new HashMap<>();
         Pattern versionHeaderLine = Pattern.compile("##\\s+\\[(?<version>.*)\\]\\s+-\\s+\\d{4}-\\d{2}-\\d{2}");
 
+        int lineNumber = 1;
         for (String line : fileLines) {
             Matcher matcher = versionHeaderLine.matcher(line);
             if (matcher.matches()) {
                 String versionNumber = matcher.group("version");
-                Integer registeredOccurences = versionCounts.getOrDefault(versionNumber, 0);
-                versionCounts.put(versionNumber, registeredOccurences + 1);
+                List<Integer> registeredLineNumbers = versionCounts.getOrDefault(versionNumber, new ArrayList<>());
+                registeredLineNumbers.add(lineNumber);
+                versionCounts.put(versionNumber, registeredLineNumbers);
             }
+            lineNumber++;
         }
 
         // return versions that occur more than once
         ArrayList<ValidationMessage> doubleVersions = new ArrayList<>();
         for (String version : versionCounts.keySet()) {
-            if (versionCounts.get(version) > 1)
-                doubleVersions.add(() -> version);
+            if (versionCounts.get(version).size() > 1)
+                doubleVersions.add(createDuplicateVersionMessage(version, versionCounts.get(version)));
 
         }
         return doubleVersions;
+    }
+
+    private ValidationMessage createDuplicateVersionMessage(String version, List<Integer> lineNumbers) {
+        return () -> "Version " + version + " appeared multiple lines @ line "
+                + Joiner.on(", ").join(lineNumbers);
     }
 }
