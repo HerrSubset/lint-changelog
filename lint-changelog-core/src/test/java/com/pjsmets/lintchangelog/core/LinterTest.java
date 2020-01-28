@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -15,12 +18,27 @@ public class LinterTest {
      * An empty CHANGELOG is valid.
      */
     @Test
-    public void emptyFileIsValid() throws IOException {
-        File file = loadTestFile("testfiles/01_empty_file.md");
+    public void emptyFileIsValid() throws URISyntaxException {
+        Path file = loadTestFile("testfiles/01_empty_file.md");
         List<ValidationMessage> validationFailures = new ChangelogLinter(file)
                 .validate();
 
         assertTrue(validationFailures.isEmpty());
+    }
+
+    /**
+     * When a path is given that does not exist, return a validation
+     * message which includes said path.
+     */
+    @Test
+    public void testNonExistingFileMessage() {
+        String nonExistingPath = "my/non/existing/file.md";
+        Path nonExistingFile = Paths.get(nonExistingPath);
+        List<ValidationMessage> validationFailures = new ChangelogLinter(nonExistingFile)
+                .validate();
+
+        assertFalse(validationFailures.isEmpty());
+        assertTrue(validationFailures.get(0).getMessage().contains(nonExistingPath));
     }
 
     /**
@@ -29,8 +47,8 @@ public class LinterTest {
      * in the validation message.
      */
     @Test
-    public void doubleVersionEntriesAreReported() {
-        File file = loadTestFile("testfiles/02_double_version.md");
+    public void doubleVersionEntriesAreReported() throws URISyntaxException {
+        Path file = loadTestFile("testfiles/02_double_version.md");
         List<ValidationMessage> validationFailures = new ChangelogLinter(file)
                 .validate();
 
@@ -43,8 +61,8 @@ public class LinterTest {
      * they occur, so the user can find them more easily.
      */
     @Test
-    public void doubleVersionsGetLineNumbersInValidationMessage() {
-        File file = loadTestFile("testfiles/03_triple_version.md");
+    public void doubleVersionsGetLineNumbersInValidationMessage() throws URISyntaxException {
+        Path file = loadTestFile("testfiles/03_triple_version.md");
         List<ValidationMessage> validationFailures = new ChangelogLinter(file)
                 .validate();
 
@@ -54,16 +72,15 @@ public class LinterTest {
         assertTrue(validationFailures.get(0).getMessage().contains(" 36"));
     }
 
-    // TODO: test path to file that doesn't exist (change API to take path instead of File)
 
     /******************************************************
      * Utilities
      *****************************************************/
-    private File loadTestFile(String path) {
-        return new File(getClass()
+    private Path loadTestFile(String path) throws URISyntaxException {
+        return Paths.get(getClass()
                 .getClassLoader()
                 .getResource(path)
-                .getFile()
+                .toURI()
         );
     }
 }

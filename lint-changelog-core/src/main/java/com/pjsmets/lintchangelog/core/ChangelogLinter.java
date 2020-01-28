@@ -2,9 +2,9 @@ package com.pjsmets.lintchangelog.core;
 
 import com.google.common.base.Joiner;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,9 +13,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ChangelogLinter {
-    private final File file;
+    private final Path file;
 
-    public ChangelogLinter(File file) {
+    public ChangelogLinter(Path file) {
         this.file = file;
     }
 
@@ -23,12 +23,10 @@ public class ChangelogLinter {
         List<ValidationMessage> result = new ArrayList<>();
 
         try {
-            List<String> fileLines = Files.readAllLines(file.toPath());
+            List<String> fileLines = Files.readAllLines(file);
             result.addAll(generateDoubleVersionWarnings(fileLines));
-            if (!fileLines.isEmpty())
-                result.add(() -> "1.0.1");
         } catch (IOException e) {
-            e.printStackTrace();
+            result.add(() -> "File does not exist: " + file.toString());
         }
 
         return result;
