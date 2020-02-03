@@ -5,10 +5,7 @@ import com.google.common.base.Joiner;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,11 +22,36 @@ public class ChangelogLinter {
         try {
             List<String> fileLines = Files.readAllLines(file);
             result.addAll(generateDoubleVersionWarnings(fileLines));
+            result.addAll(generateGitMergeLeftoversWarnings(fileLines));
         } catch (IOException e) {
             result.add(() -> "File does not exist: " + file.toString());
         }
 
         return result;
+    }
+
+    private List<ValidationMessage> generateGitMergeLeftoversWarnings(List<String> fileLines) {
+        ArrayList<ValidationMessage> validationMessages = new ArrayList<>();
+        Pattern oursLinePattern = Pattern.compile("<<<<<<< .+");
+        Pattern separatorLinePattern = Pattern.compile("=======");
+        Pattern theirsLinePattern = Pattern.compile(">>>>>>> .+");
+
+        int lineNumber = 1;
+        for (String line : fileLines) {
+            checkLineWithMatcher(line, oursLinePattern, lineNumber, validationMessages);
+            checkLineWithMatcher(line, separatorLinePattern, lineNumber, validationMessages);
+            checkLineWithMatcher(line, theirsLinePattern, lineNumber, validationMessages);
+            lineNumber++;
+        }
+        return validationMessages;
+    }
+
+    private void checkLineWithMatcher(final String line,
+                                      final Pattern invalidLinePattern,
+                                      final int lineNumber,
+                                      final List<ValidationMessage> validationMessages) {
+        if (invalidLinePattern.matcher(line).matches())
+            validationMessages.add(() -> "Found git merge leftover at line " + lineNumber + ": '" +line + "'");
     }
 
     private List<ValidationMessage> generateDoubleVersionWarnings(List<String> fileLines) {
