@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class ChangelogLinter {
     private final Path file;
@@ -72,13 +73,10 @@ public class ChangelogLinter {
         }
 
         // return versions that occur more than once
-        ArrayList<ValidationMessage> doubleVersions = new ArrayList<>();
-        for (String version : versionCounts.keySet()) {
-            if (versionCounts.get(version).size() > 1)
-                doubleVersions.add(createDuplicateVersionMessage(version, versionCounts.get(version)));
-
-        }
-        return doubleVersions;
+        return versionCounts.keySet().stream()
+                .filter(version -> versionCounts.get(version).size() > 1)
+                .map(version -> createDuplicateVersionMessage(version, versionCounts.get(version)))
+                .collect(Collectors.toList());
     }
 
     private ValidationMessage createDuplicateVersionMessage(String version, List<Integer> lineNumbers) {
