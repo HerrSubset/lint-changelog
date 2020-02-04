@@ -1,12 +1,15 @@
 package com.pjsmets.lintchangelog.core;
 
+import com.google.common.base.Joiner;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,7 +33,8 @@ public class LinterTest {
      */
     @Test
     public void testNonExistingFileMessage() {
-        String nonExistingPath = "my/non/existing/file.md";
+        String nonExistingPath = Joiner.on(File.separator)
+                .join(asList("my", "non", "existing", "file.md"));
         Path nonExistingFile = Paths.get(nonExistingPath);
         List<ValidationMessage> validationFailures = new ChangelogLinter(nonExistingFile)
                 .validate();
