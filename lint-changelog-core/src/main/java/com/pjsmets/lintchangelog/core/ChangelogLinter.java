@@ -12,11 +12,6 @@ import java.util.stream.Collectors;
 
 public class ChangelogLinter {
 
-    private static final Pattern GIT_MERGE_OURS_SECTION_PATTERN = Pattern.compile("<<<<<<< .+");
-    private static final Pattern GIT_MERGE_SECTION_SEPARATOR = Pattern.compile("=======");
-    private static final Pattern GIT_MERGE_THEIRS_SECTION_PATTERN = Pattern.compile(">>>>>>> .+");
-
-
     private final Path file;
 
     public ChangelogLinter(Path file) {
@@ -27,7 +22,9 @@ public class ChangelogLinter {
         List<ValidationMessage> result = new ArrayList<>();
 
         try {
-            List<String> fileLines = Files.readAllLines(file);
+            List<ChangelogLine> fileLines = Files.readAllLines(file).stream()
+                    .map(ChangelogLine::new)
+                    .collect(Collectors.toList());
             result.addAll(generateDoubleVersionWarnings(fileLines));
             result.addAll(generateGitMergeLeftoversWarnings(fileLines));
             result.addAll(generateWhiteLineWarnings(fileLines));
@@ -38,48 +35,40 @@ public class ChangelogLinter {
         return result;
     }
 
-    private List<ValidationMessage> generateWhiteLineWarnings(List<String> fileLines) {
+    private List<ValidationMessage> generateWhiteLineWarnings(List<ChangelogLine> fileLines) {
         ArrayList<ValidationMessage> validationMessages = new ArrayList<>();
 
         int lineNumber = 0;
-        String previousLine = null;
+        ChangelogLine previousLine = null;
         boolean headerIsProcessed = false;
-        for (String line : fileLines) {
+        for (ChangelogLine line : fileLines) {
             lineNumber++;
-            headerIsProcessed = headerIsProcessed || line.startsWith("##");
+            headerIsProcessed = headerIsProcessed || line.toString().startsWith("##");
             if (!headerIsProcessed) continue;
 
-            if (previousLineIsInvalidWhiteLine(previousLine, line)
-                    && isRegularEntry(line)
-                    && previousLine.isEmpty()) {
+            if (line.isEntry() && previousLine.isWhiteLine()) {
                 validationMessages.add(unexpectedWhiteSpaceMessage(lineNumber - 1));
 
-            } else if (line.trim().isEmpty() && previousLine.isEmpty()) {
+            } else if (line.isWhiteLine() && previousLine.isWhiteLine()) {
                 validationMessages.add(unexpectedWhiteSpaceMessage(lineNumber));
 
-            } else if (isVersionHeader(line) && previousLine != null && !previousLine.isEmpty()) {
+            } else if (line.isVersionHeader()
+                    && previousLine != null
+                    && !previousLine.isWhiteLine()) {
                 validationMessages.add(expectedWhiteSpaceMessage(lineNumber));
 
-            } else if (isVersionSectionheader(line)
+            } else if (line.isVersionSectionheader()
                     && previousLine != null
-                    && !previousLine.isEmpty()
-                    && !isVersionHeader(previousLine)
-                    && !isGitMergeLeftover(previousLine)) {
+                    && !previousLine.isWhiteLine()
+                    && !previousLine.isVersionHeader()
+                    && !previousLine.isGitLeftover()) {
                 validationMessages.add(expectedWhiteSpaceMessage(lineNumber));
 
             }
-            previousLine = line.trim();
+            previousLine = line;
         }
 
         return validationMessages;
-    }
-
-    private boolean isVersionSectionheader(String line) {
-        return line != null && line.startsWith("### ");
-    }
-
-    private boolean isVersionHeader(String line) {
-        return line != null && line.startsWith("## ");
     }
 
     private ValidationMessage expectedWhiteSpaceMessage(int lineNumber) {
@@ -90,23 +79,12 @@ public class ChangelogLinter {
         return () -> "Unexpected whitespace @ line " + lineNumber;
     }
 
-    private boolean previousLineIsInvalidWhiteLine(final String previousLine,
-                                                   final String currentLine) {
-        return isRegularEntry(currentLine) && previousLine.isEmpty();
-    }
-
-    private boolean isRegularEntry(String line) {
-        return !line.trim().isEmpty()
-                && !line.startsWith("#")
-                && !line.startsWith("[");
-    }
-
-    private List<ValidationMessage> generateGitMergeLeftoversWarnings(List<String> fileLines) {
+    private List<ValidationMessage> generateGitMergeLeftoversWarnings(List<ChangelogLine> fileLines) {
         ArrayList<ValidationMessage> validationMessages = new ArrayList<>();
 
         int lineNumber = 1;
-        for (String line : fileLines) {
-            if (isGitMergeLeftover(line)) {
+        for (ChangelogLine line : fileLines) {
+            if (line.isGitLeftover()) {
                 int errorLine = lineNumber;
                 validationMessages.add(() -> "Found git merge leftover at line " + errorLine + ": '" + line + "'");
             }
@@ -115,20 +93,14 @@ public class ChangelogLinter {
         return validationMessages;
     }
 
-    private boolean isGitMergeLeftover(String line)  {
-        return GIT_MERGE_OURS_SECTION_PATTERN.matcher(line).matches()
-                || GIT_MERGE_SECTION_SEPARATOR.matcher(line).matches()
-                || GIT_MERGE_THEIRS_SECTION_PATTERN.matcher(line).matches();
-    }
-
-    private List<ValidationMessage> generateDoubleVersionWarnings(List<String> fileLines) {
+    private List<ValidationMessage> generateDoubleVersionWarnings(List<ChangelogLine> fileLines) {
         // build a map of how many times a version occurs
         Map<String, List<Integer>> versionCounts = new HashMap<>();
         Pattern versionHeaderLine = Pattern.compile("##\\s+\\[(?<version>.*)\\]\\s+-\\s+\\d{4}-\\d{2}-\\d{2}");
 
         int lineNumber = 1;
-        for (String line : fileLines) {
-            Matcher matcher = versionHeaderLine.matcher(line);
+        for (ChangelogLine line : fileLines) {
+            Matcher matcher = versionHeaderLine.matcher(line.toString());
             if (matcher.matches()) {
                 String versionNumber = matcher.group("version");
                 List<Integer> registeredLineNumbers = versionCounts.getOrDefault(versionNumber, new ArrayList<>());
