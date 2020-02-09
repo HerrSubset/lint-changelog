@@ -16,6 +16,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class LinterTest {
 
     /**
+     * Check if the CHANGELOG from keepachangelog.com
+     * passes the validation successfully.
+     */
+    @Test
+    public void noValidationWarningsOnPerfectChangelog() {
+        Path file = loadTestFile("testfiles/00_flawless_file.md");
+        List<ValidationMessage> validationFailures = new ChangelogLinter(file)
+                .validate();
+
+        assertTrue(validationFailures.isEmpty());
+    }
+
+    /**
      * An empty CHANGELOG is valid.
      */
     @Test
