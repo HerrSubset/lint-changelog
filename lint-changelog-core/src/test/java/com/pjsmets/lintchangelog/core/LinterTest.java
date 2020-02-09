@@ -19,7 +19,7 @@ public class LinterTest {
      * An empty CHANGELOG is valid.
      */
     @Test
-    public void emptyFileIsValid() throws URISyntaxException {
+    public void emptyFileIsValid() {
         Path file = loadTestFile("testfiles/01_empty_file.md");
         List<ValidationMessage> validationFailures = new ChangelogLinter(file)
                 .validate();
@@ -49,7 +49,7 @@ public class LinterTest {
      * in the validation message.
      */
     @Test
-    public void doubleVersionEntriesAreReported() throws URISyntaxException {
+    public void doubleVersionEntriesAreReported() {
         Path file = loadTestFile("testfiles/02_double_version.md");
         List<ValidationMessage> validationFailures = new ChangelogLinter(file)
                 .validate();
@@ -63,7 +63,7 @@ public class LinterTest {
      * they occur, so the user can find them more easily.
      */
     @Test
-    public void doubleVersionsGetLineNumbersInValidationMessage() throws URISyntaxException {
+    public void doubleVersionsGetLineNumbersInValidationMessage() {
         Path file = loadTestFile("testfiles/03_triple_version.md");
         List<ValidationMessage> validationFailures = new ChangelogLinter(file)
                 .validate();
@@ -81,7 +81,7 @@ public class LinterTest {
      * Looks like: '<<<<<<< HEAD'
      */
     @Test
-    public void detectOursSectionFromGitMerge() throws URISyntaxException {
+    public void detectOursSectionFromGitMerge() {
         Path file = loadTestFile("testfiles/04_detect_git_ours_line.md");
         List<ValidationMessage> validationFailures = new ChangelogLinter(file)
                 .validate();
@@ -98,7 +98,7 @@ public class LinterTest {
      * Looks like: '======='
      */
     @Test
-    public void detectSectionSeparatorFromGitMerge() throws URISyntaxException {
+    public void detectSectionSeparatorFromGitMerge() {
         Path file = loadTestFile("testfiles/05_detect_git_merge_section_separator.md");
         List<ValidationMessage> validationFailures = new ChangelogLinter(file)
                 .validate();
@@ -115,7 +115,7 @@ public class LinterTest {
      * Looks like: '>>>>>>> branch-2'
      */
     @Test
-    public void detectTheirsSectionFromGitMerge() throws URISyntaxException {
+    public void detectTheirsSectionFromGitMerge() {
         Path file = loadTestFile("testfiles/06_detect_git_theirs_line.md");
         List<ValidationMessage> validationFailures = new ChangelogLinter(file)
                 .validate();
@@ -129,11 +129,15 @@ public class LinterTest {
     /******************************************************
      * Utilities
      *****************************************************/
-    private Path loadTestFile(String path) throws URISyntaxException {
-        return Paths.get(getClass()
-                .getClassLoader()
-                .getResource(path)
-                .toURI()
-        );
+    private Path loadTestFile(String path) {
+        try {
+            return Paths.get(getClass()
+                    .getClassLoader()
+                    .getResource(path)
+                    .toURI()
+            );
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Error trying to open test resource.", e);
+        }
     }
 }
