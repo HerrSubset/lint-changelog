@@ -32,17 +32,25 @@ public class LintWhitespaceTest {
         assertTrue(validationFailures.get(0).getMessage().contains("17"), "Line number is not correct");
     }
 
+    /**
+     * No white lines in between entries
+     *
+     * ## [1.0.0] 2012-05-16
+     *                        <--- not allowed
+     * ### Added
+     * - item 1
+     * - item 2
+     * - item 3
+     */
+    @Test
+    public void emptyLinesAfterVersionHeadingsIsNotAllowed() {
+        Path file = loadTestFile("testfiles/08_no_white_lines_after_header.md");
+        List<ValidationMessage> validationFailures = new ChangelogLinter(file)
+                .validate();
 
-//    @Test
-//    public void emptyLinesAfterSectionHeadingsIsNotAllowed() {
-//        Path file = loadTestFile("testfiles/08_no_white_lines_after_header.md");
-//        List<ValidationMessage> validationFailures = new ChangelogLinter(file)
-//                .validate();
-//
-//        assertEquals(2, validationFailures.size());
-//        assertTrue(validationFailures.get(0).getMessage().contains("10"), "Line number is not correct");
-//        assertTrue(validationFailures.get(1).getMessage().contains("60"), "Line number is not correct");
-//    }
+        assertEquals(1, validationFailures.size());
+        assertTrue(validationFailures.get(0).getMessage().contains("10"), "Line number is not correct");
+    }
 
     /**
      * Nowhere in the file should two consecutive white lines

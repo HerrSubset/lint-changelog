@@ -40,31 +40,41 @@ public class ChangelogLinter {
 
         int lineNumber = 0;
         ChangelogLine previousLine = null;
+        ChangelogLine twoLinesBack = null;
         boolean headerIsProcessed = false;
         for (ChangelogLine line : fileLines) {
             lineNumber++;
             headerIsProcessed = headerIsProcessed || line.toString().startsWith("##");
             if (!headerIsProcessed) continue;
 
+            // white line before entry
             if (line.isEntry() && previousLine.isWhiteLine()) {
                 validationMessages.add(unexpectedWhiteSpaceMessage(lineNumber - 1));
 
+            // double white line
             } else if (line.isWhiteLine() && previousLine.isWhiteLine()) {
                 validationMessages.add(unexpectedWhiteSpaceMessage(lineNumber));
 
+            // no white line before version header
             } else if (line.isVersionHeader()
                     && previousLine != null
                     && !previousLine.isWhiteLine()) {
                 validationMessages.add(expectedWhiteSpaceMessage(lineNumber));
 
+            // no white line before version section header (except right after version header)
             } else if (line.isVersionSectionheader()
-                    && previousLine != null
-                    && !previousLine.isWhiteLine()
+                    && previousLine != null && !previousLine.isWhiteLine()
                     && !previousLine.isVersionHeader()
                     && !previousLine.isGitLeftover()) {
                 validationMessages.add(expectedWhiteSpaceMessage(lineNumber));
 
+            // white line right after version header
+            } else if (line.isVersionSectionheader()
+                    && previousLine != null && previousLine.isWhiteLine()
+                    && twoLinesBack != null && twoLinesBack.isVersionHeader()) {
+                validationMessages.add(unexpectedWhiteSpaceMessage(lineNumber - 1));
             }
+            twoLinesBack = previousLine;
             previousLine = line;
         }
 
