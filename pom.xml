@@ -15,7 +15,7 @@
     <properties>
         <!-- Dependency versions-->
         <junit.jupiter.version>5.6.0</junit.jupiter.version>
-        <guava.version>28.2-jre</guava.version>
+        <guava.version>29.0-jre</guava.version>
 
         <!-- Plugin versions -->
         <compiler.plugin.version>3.8.1</compiler.plugin.version>
